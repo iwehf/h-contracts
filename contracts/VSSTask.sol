@@ -138,6 +138,9 @@ contract VSSTask is Ownable {
     uint256 private nextSequence;
     address private relayAddress;
     uint256 private timeout;
+    mapping(bytes32 => bytes32) private merkleProofs;
+    mapping(bytes32 => bytes32) private merkleRoots;
+
 
     uint private distanceThreshold;
 
@@ -210,7 +213,7 @@ contract VSSTask is Ownable {
         uint requiredGPUVRAM,
         uint[3] calldata taskVersion,
         uint taskSize
-    ) public payable {
+    ) public payable returns (bytes32){
         if (taskType == TaskType.LLM || taskType == TaskType.SD_FT) {
             require(bytes(requiredGPU).length > 0, "GPU name is empty");
         }
@@ -277,6 +280,7 @@ contract VSSTask is Ownable {
                 revert(reason);
             }
         }
+        return taskInfo.samplingSeed;
     }
 
     function validateSingleTask(
@@ -496,6 +500,15 @@ contract VSSTask is Ownable {
         }
     }
 
+    function reportTaskParametersUploaded(bytes32 taskIDCommitment, bytes32 merkleProof) public {
+        checkStateTransitionAllowance(
+            taskIDCommitment,
+            TaskStateTransition.ReportTaskParametersUploaded
+        );
+        merkleProofs[taskIDCommitment] = merkleProof;
+        changeTaskState(taskIDCommitment, TaskStatus.ParametersUploaded);
+    }
+
     /* Interfaces for nodes */
 
     function reportTaskError(bytes32 taskIDCommitment, TaskError error) public {
@@ -554,13 +567,8 @@ contract VSSTask is Ownable {
 
     /* Interfaces for Relay */
 
-    function reportTaskParametersUploaded(bytes32 taskIDCommitment) public {
-        checkStateTransitionAllowance(
-            taskIDCommitment,
-            TaskStateTransition.ReportTaskParametersUploaded
-        );
-
-        changeTaskState(taskIDCommitment, TaskStatus.ParametersUploaded);
+    function updatedMerkleRoot(bytes32 taskIDCommitment, bytes32 merkleRoot) public {
+        merkleRoots[taskIDCommitment] = merkleRoot;
     }
 
     function reportTaskResultUploaded(bytes32 taskIDCommitment) public {
