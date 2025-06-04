@@ -417,7 +417,7 @@ contract Node is Ownable {
         emit NodeSlashed(nodeAddress);
     }
 
-    function startTask(address nodeAddress) public {
+    function startTask(address nodeAddress, string[] memory modelIDs) public {
         require(
             msg.sender == taskContractAddress,
             "Not called by the task contract"
@@ -428,6 +428,7 @@ contract Node is Ownable {
         );
         markNodeUnavailable(nodeAddress);
         setNodeStatus(nodeAddress, NodeStatus.Busy);
+        nodesMap[nodeAddress].lastModelIDs = modelIDs;
         qos.startTask(nodeAddress);
         netStats.nodeTaskStarted();
     }
