@@ -10,6 +10,10 @@ contract Credits is Ownable {
     EnumerableSet.AddressSet private allCreditAddresses;
     mapping(address => uint) private credits;
 
+    event CreditsBought(address indexed fromAddr, address indexed toAddr, uint amount);
+    event CreditsStaked(address indexed addr, uint amount);
+    event CreditsUnstaked(address indexed addr, uint amount);
+
     address private stakingAddress;
 
     constructor(
@@ -41,12 +45,14 @@ contract Credits is Ownable {
         require(msg.value == amount, "Inconsistent amount");
         credits[addr] += amount;
         allCreditAddresses.add(addr);
+        emit CreditsBought(msg.sender, addr, amount);
     }
 
     function buyCredits(uint amount) public payable {
         require(msg.value == amount, "Inconsistent amount");
         credits[msg.sender] += amount;
         allCreditAddresses.add(msg.sender);
+        emit CreditsBought(msg.sender, msg.sender, amount);
     }
 
     function stakeCredits(address addr, uint amount) public {
@@ -54,6 +60,7 @@ contract Credits is Ownable {
         require(credits[addr] >= amount, "Insufficient credits");
         credits[addr] -= amount;
         credits[stakingAddress] += amount;
+        emit CreditsStaked(addr, amount);
     }
 
     function unstakeCredits(address addr, uint amount) public {
@@ -61,5 +68,6 @@ contract Credits is Ownable {
         require(credits[stakingAddress] >= amount, "Staked credits is not enough");
         credits[stakingAddress] -= amount;
         credits[addr] += amount;
+        emit CreditsUnstaked(addr, amount);
     }
 }
