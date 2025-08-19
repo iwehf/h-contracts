@@ -15,6 +15,7 @@ contract Credits is Ownable {
     event CreditsUnstaked(address indexed addr, uint amount);
 
     address private stakingAddress;
+    address private adminAddress;
 
     constructor(
     ) Ownable(msg.sender) {
@@ -22,6 +23,10 @@ contract Credits is Ownable {
 
     function setStakingAddress(address addr) external onlyOwner {
         stakingAddress = addr;
+    }
+
+    function setAdminAddress(address addr) external onlyOwner {
+        adminAddress = addr;
     }
 
     function getCredits(address addr) public view returns (uint) {
@@ -41,18 +46,11 @@ contract Credits is Ownable {
         return (addresses, amounts);
     }
 
-    function buyCreditsFor(address addr, uint amount) public payable {
-        require(msg.value == amount, "Inconsistent amount");
+    function createCredits(address addr, uint amount) public {
+        require(msg.sender == adminAddress, "Not called by the admin");
         credits[addr] += amount;
         allCreditAddresses.add(addr);
         emit CreditsBought(msg.sender, addr, amount);
-    }
-
-    function buyCredits(uint amount) public payable {
-        require(msg.value == amount, "Inconsistent amount");
-        credits[msg.sender] += amount;
-        allCreditAddresses.add(msg.sender);
-        emit CreditsBought(msg.sender, msg.sender, amount);
     }
 
     function stakeCredits(address addr, uint amount) public {
