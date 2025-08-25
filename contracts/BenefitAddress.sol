@@ -7,7 +7,7 @@ contract BenefitAddress is Ownable {
 
     event BenefitAddressSet(address indexed nodeAddress, address indexed benefitAddress);
 
-    constructor(address owner) Ownable(owner) {
+    constructor() Ownable(msg.sender) {
     }
 
     function getBenefitAddress(address nodeAddress) external view returns (address) {
