@@ -684,7 +684,7 @@ contract VSSTask is Ownable {
             emit TaskStarted(taskIDCommitment, taskInfo.selectedNode);
             taskInfo.startTimestamp = block.timestamp;
             nodeTasks[taskInfo.selectedNode] = taskIDCommitment;
-            node.startTask(taskInfo.selectedNode);
+            node.startTask(taskInfo.selectedNode, taskInfo.modelIDs);
             networkStats.taskStarted();
 
             for (uint i = 0; i < taskInfo.modelIDs.length; i++) {
@@ -770,16 +770,16 @@ contract VSSTask is Ownable {
             if (taskInfo.scoreReadyTimestamp == 0) {
                 taskInfo.scoreReadyTimestamp = block.timestamp;
             }
+            (bool success, ) = taskInfo.creator.call{value: taskInfo.taskFee}(
+                ""
+            );
+            require(success, "Token transfer failed");
             if (taskInfo.selectedNode != address(0)) {
-                (bool success, ) = taskInfo.creator.call{value: taskInfo.taskFee}(
-                    ""
-                );
                 // add task score to selected node when it completes task execution
                 // to avoid kick it out
                 if (lastStatus != TaskStatus.ParametersUploaded) {
                     qos.addTaskScore(taskInfo.selectedNode, 0);
                 }
-                require(success, "Token transfer failed");
                 delete nodeTasks[taskInfo.selectedNode];
                 node.finishTask(taskInfo.selectedNode);
                 networkStats.taskFinished();
