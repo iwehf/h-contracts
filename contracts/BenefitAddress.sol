@@ -12,9 +12,6 @@ contract BenefitAddress is Ownable {
 
     function getBenefitAddress(address nodeAddress) external view returns (address) {
         address addr = benefitAddressMap[nodeAddress];
-        if (addr == address(0)) {
-            return nodeAddress;
-        }
         return addr;
     }
 
