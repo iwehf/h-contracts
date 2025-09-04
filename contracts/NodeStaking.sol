@@ -158,6 +158,9 @@ contract NodeStaking is Ownable {
     function returnBalance(address nodeAddress, uint amount) internal {
         require(amount > 0, "Amount is zero");
         address benefitAddress = ba.getBenefitAddress(nodeAddress);
+        if (benefitAddress == address(0)) {
+            benefitAddress = nodeAddress;
+        }
         (bool success, ) = benefitAddress.call{value: amount}("");
         require(success, "Token transfer failed");
     }
