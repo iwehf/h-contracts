@@ -93,7 +93,9 @@ contract NodeStaking is Ownable {
                 nodeStakingMap[msg.sender].stakedBalance = 0;
                 nodeStakingMap[msg.sender].stakedCredits = stakedAmount;
                 // return the staked balance
-                returnBalance(msg.sender, currentStakingInfo.stakedBalance);
+                if (currentStakingInfo.stakedBalance > 0) {
+                    returnBalance(msg.sender, currentStakingInfo.stakedBalance);
+                }
                 // return the staked credits
                 uint creditsDiff = diff - currentStakingInfo.stakedBalance;
                 credits.unstakeCredits(msg.sender, creditsDiff);
