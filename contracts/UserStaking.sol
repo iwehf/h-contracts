@@ -49,7 +49,7 @@ contract UserStaking is Ownable {
         nodeStakingAddress = addr;
     }
 
-    function setCommisionRate(uint8 rate) public {
+    function setCommissionRate(uint8 rate) public {
         nodeCommissionRate[msg.sender] = rate;
         emit NodeCommissionRateChanged(msg.sender, rate);
         // withdraw all user staking on this node when the node closes user staing (set commission rate to 0)
