@@ -189,6 +189,14 @@ contract UserStaking is Ownable {
         return nodeCommissionRate[nodeAddress];
     }
 
+    function getUserStakingAmount(address userAddress, address nodeAddress) public view returns (uint) {
+        bytes32 stakingInfoID = keccak256(
+            abi.encodePacked(userAddress, nodeAddress)
+        );
+        uint amount = stakingInfos[stakingInfoID].stakeAmount;
+        return amount;
+    }
+
     function getNodeStakingInfos(
         address nodeAddress
     ) public view returns (address[] memory, uint[] memory) {
