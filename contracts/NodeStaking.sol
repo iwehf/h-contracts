@@ -48,6 +48,10 @@ contract NodeStaking is Ownable {
         adminAddress = addr;
     }
 
+    function setMinStakeAmount(uint stakeAmount) public onlyOwner {
+        require(stakeAmount > 0, "minimum stake amount is 0");
+        minStakeAmount = stakeAmount;
+    }
 
     // public api for node
     function getMinStakeAmount() public view returns (uint) {
