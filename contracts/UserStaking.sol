@@ -23,7 +23,7 @@ contract UserStaking is Ownable {
         address nodeAddress,
         uint amount
     );
-    event NodeDelegatorShareChanged(address indexed nodeAddress, uint8 rate);
+    event NodeDelegatorShareChanged(address indexed nodeAddress, uint8 share);
     event NodeSlashed(address indexed nodeAddress);
 
     EnumerableSet.AddressSet private availableNodes;
@@ -57,12 +57,12 @@ contract UserStaking is Ownable {
         nodeStakingAddress = addr;
     }
 
-    function setDelegatorShare(uint8 rate) public {
-        require(rate < 100, "rate is larger than 100");
-        nodeDelegatorShare[msg.sender] = rate;
-        emit NodeDelegatorShareChanged(msg.sender, rate);
-        // withdraw all user staking on this node when the node closes user staing (set commission rate to 0)
-        if (rate == 0) {
+    function setDelegatorShare(uint8 share) public {
+        require(share < 100, "share is larger than 100");
+        nodeDelegatorShare[msg.sender] = share;
+        emit NodeDelegatorShareChanged(msg.sender, share);
+        // withdraw all user staking on this node when the node closes user staing (set commission share to 0)
+        if (share == 0) {
             availableNodes.remove(msg.sender);
             clearStakingOfNode(msg.sender, false);
         } else {
@@ -73,7 +73,7 @@ contract UserStaking is Ownable {
     function stake(address nodeAddress, uint amount) public payable {
         require(
             nodeDelegatorShare[nodeAddress] > 0,
-            "node commission rate is 0"
+            "node commission share is 0"
         );
         require(amount >= minStakeAmount, "stake amount is too low");
 
@@ -207,11 +207,11 @@ contract UserStaking is Ownable {
         returns (address[] memory, uint8[] memory)
     {
         address[] memory nodes = availableNodes.values();
-        uint8[] memory rates = new uint8[](nodes.length);
+        uint8[] memory shares = new uint8[](nodes.length);
         for (uint i = 0; i < nodes.length; i++) {
-            rates[i] = nodeDelegatorShare[nodes[i]];
+            shares[i] = nodeDelegatorShare[nodes[i]];
         }
-        return (nodes, rates);
+        return (nodes, shares);
     }
 
     function getUserStakingAmount(
