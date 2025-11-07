@@ -23,11 +23,11 @@ contract UserStaking is Ownable {
         address nodeAddress,
         uint amount
     );
-    event NodeCommissionRateChanged(address indexed nodeAddress, uint8 rate);
+    event NodeDelegatorShareChanged(address indexed nodeAddress, uint8 rate);
     event NodeSlashed(address indexed nodeAddress);
 
     EnumerableSet.AddressSet private availableNodes;
-    mapping(address => uint8) private nodeCommissionRate;
+    mapping(address => uint8) private nodeDelegatorShare;
 
     mapping(bytes32 => UserStakingInfo) private stakingInfos;
     EnumerableSet.AddressSet private userAddresses;
@@ -57,10 +57,10 @@ contract UserStaking is Ownable {
         nodeStakingAddress = addr;
     }
 
-    function setCommissionRate(uint8 rate) public {
+    function setDelegatorShare(uint8 rate) public {
         require(rate < 100, "rate is larger than 100");
-        nodeCommissionRate[msg.sender] = rate;
-        emit NodeCommissionRateChanged(msg.sender, rate);
+        nodeDelegatorShare[msg.sender] = rate;
+        emit NodeDelegatorShareChanged(msg.sender, rate);
         // withdraw all user staking on this node when the node closes user staing (set commission rate to 0)
         if (rate == 0) {
             availableNodes.remove(msg.sender);
@@ -72,7 +72,7 @@ contract UserStaking is Ownable {
 
     function stake(address nodeAddress, uint amount) public payable {
         require(
-            nodeCommissionRate[nodeAddress] > 0,
+            nodeDelegatorShare[nodeAddress] > 0,
             "node commission rate is 0"
         );
         require(amount >= minStakeAmount, "stake amount is too low");
@@ -195,13 +195,13 @@ contract UserStaking is Ownable {
         delete nodeStakeAmount[nodeAddress];
     }
 
-    function getNodeCommissionRate(
+    function getNodeDelegatorShare(
         address nodeAddress
     ) public view returns (uint8) {
-        return nodeCommissionRate[nodeAddress];
+        return nodeDelegatorShare[nodeAddress];
     }
 
-    function getAllNodeCommissionRates()
+    function getAllNodeDelegatorShares()
         public
         view
         returns (address[] memory, uint8[] memory)
@@ -209,7 +209,7 @@ contract UserStaking is Ownable {
         address[] memory nodes = availableNodes.values();
         uint8[] memory rates = new uint8[](nodes.length);
         for (uint i = 0; i < nodes.length; i++) {
-            rates[i] = nodeCommissionRate[nodes[i]];
+            rates[i] = nodeDelegatorShare[nodes[i]];
         }
         return (nodes, rates);
     }
