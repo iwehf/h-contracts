@@ -61,7 +61,7 @@ contract UserStaking is Ownable {
         require(share < 100, "share is larger than 100");
         nodeDelegatorShare[msg.sender] = share;
         emit NodeDelegatorShareChanged(msg.sender, share);
-        // withdraw all user staking on this node when the node closes user staing (set commission share to 0)
+        // withdraw all user staking on this node when the node closes user staing (set delegator share to 0)
         if (share == 0) {
             availableNodes.remove(msg.sender);
             clearStakingOfNode(msg.sender, false);
@@ -73,7 +73,7 @@ contract UserStaking is Ownable {
     function stake(address nodeAddress, uint amount) public payable {
         require(
             nodeDelegatorShare[nodeAddress] > 0,
-            "node commission share is 0"
+            "node delegator share is 0"
         );
         require(amount >= minStakeAmount, "stake amount is too low");
 
