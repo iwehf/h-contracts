@@ -3,23 +3,23 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract UserStaking is Ownable {
+contract DelegatedStaking is Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
-    struct UserStakingInfo {
-        address userAddress;
+    struct StakingInfo {
+        address delegatorAddress;
         address nodeAddress;
         uint stakeAmount;
     }
 
-    event UserStaked(
-        address indexed userAddress,
+    event DelegatorStaked(
+        address indexed delegatorAddress,
         address nodeAddress,
         uint amount
     );
-    event UserUnstaked(
-        address indexed userAddress,
+    event DelegatorUnstaked(
+        address indexed delegatorAddress,
         address nodeAddress,
         uint amount
     );
@@ -29,14 +29,14 @@ contract UserStaking is Ownable {
     EnumerableSet.AddressSet private availableNodes;
     mapping(address => uint8) private nodeDelegatorShare;
 
-    mapping(bytes32 => UserStakingInfo) private stakingInfos;
-    EnumerableSet.AddressSet private userAddresses;
+    mapping(bytes32 => StakingInfo) private stakingInfos;
+    EnumerableSet.AddressSet private delegatorAddresses;
     mapping(address => EnumerableSet.Bytes32Set) private userIndex;
     EnumerableSet.AddressSet private nodeAddresses;
     mapping(address => EnumerableSet.Bytes32Set) private nodeIndex;
 
     mapping(address => uint) private nodeStakeAmount;
-    mapping(address => uint) private userStakeAmount;
+    mapping(address => uint) private delegatorStakeAmount;
 
     uint private minStakeAmount = 400 * 10 ** 18;
 
@@ -87,25 +87,25 @@ contract UserStaking is Ownable {
             "Inconsistent staked amount"
         );
 
-        stakingInfos[stakingInfoID].userAddress = msg.sender;
+        stakingInfos[stakingInfoID].delegatorAddress = msg.sender;
         stakingInfos[stakingInfoID].nodeAddress = nodeAddress;
         stakingInfos[stakingInfoID].stakeAmount = amount;
 
         userIndex[msg.sender].add(stakingInfoID);
         nodeIndex[nodeAddress].add(stakingInfoID);
 
-        userStakeAmount[msg.sender] -= oldAmount;
-        userStakeAmount[msg.sender] += amount;
+        delegatorStakeAmount[msg.sender] -= oldAmount;
+        delegatorStakeAmount[msg.sender] += amount;
         nodeStakeAmount[nodeAddress] -= oldAmount;
         nodeStakeAmount[nodeAddress] += amount;
 
-        userAddresses.add(msg.sender);
+        delegatorAddresses.add(msg.sender);
         nodeAddresses.add(nodeAddress);
 
         if (amount < oldAmount) {
             withdrawStaking(msg.sender, oldAmount - amount);
         }
-        emit UserStaked(msg.sender, nodeAddress, amount);
+        emit DelegatorStaked(msg.sender, nodeAddress, amount);
     }
 
     function unstake(address nodeAddress) public {
@@ -131,20 +131,20 @@ contract UserStaking is Ownable {
         delete stakingInfos[stakingInfoID];
         userIndex[msg.sender].remove(stakingInfoID);
         if (userIndex[msg.sender].length() == 0) {
-            userAddresses.remove(msg.sender);
+            delegatorAddresses.remove(msg.sender);
         }
         nodeIndex[nodeAddress].remove(stakingInfoID);
         if (nodeIndex[nodeAddress].length() == 0) {
             nodeAddresses.remove(nodeAddress);
         }
 
-        userStakeAmount[msg.sender] -= amount;
+        delegatorStakeAmount[msg.sender] -= amount;
         nodeStakeAmount[nodeAddress] -= amount;
 
         // withdraw staking tokens
         withdrawStaking(msg.sender, amount);
 
-        emit UserUnstaked(msg.sender, nodeAddress, amount);
+        emit DelegatorUnstaked(msg.sender, nodeAddress, amount);
     }
 
     function slashNode(address nodeAddress) public {
@@ -158,10 +158,10 @@ contract UserStaking is Ownable {
         }
     }
 
-    function withdrawStaking(address userAddress, uint amount) private {
+    function withdrawStaking(address delegatorAddress, uint amount) private {
         require(amount > 0, "amount is 0");
 
-        (bool success, ) = userAddress.call{value: amount}("");
+        (bool success, ) = delegatorAddress.call{value: amount}("");
         require(success, "token transfer failed");
     }
 
@@ -176,18 +176,18 @@ contract UserStaking is Ownable {
         bytes32[] memory stakingInfoIDs = nodeIndex[nodeAddress].values();
         for (uint i = 0; i < stakingInfoIDs.length; i++) {
             bytes32 stakingInfoID = stakingInfoIDs[i];
-            address userAddress = stakingInfos[stakingInfoID].userAddress;
+            address delegatorAddress = stakingInfos[stakingInfoID].delegatorAddress;
             uint amount = stakingInfos[stakingInfoID].stakeAmount;
-            userIndex[userAddress].remove(stakingInfoID);
-            if (userIndex[userAddress].length() == 0) {
-                userAddresses.remove(userAddress);
+            userIndex[delegatorAddress].remove(stakingInfoID);
+            if (userIndex[delegatorAddress].length() == 0) {
+                delegatorAddresses.remove(delegatorAddress);
             }
-            userStakeAmount[userAddress] -= amount;
+            delegatorStakeAmount[delegatorAddress] -= amount;
             nodeIndex[nodeAddress].remove(stakingInfoID);
             if (slash) {
                 slashStaking(amount);
             } else {
-                withdrawStaking(userAddress, amount);
+                withdrawStaking(delegatorAddress, amount);
             }
             delete stakingInfos[stakingInfoID];
         }
@@ -214,12 +214,12 @@ contract UserStaking is Ownable {
         return (nodes, shares);
     }
 
-    function getUserStakingAmount(
-        address userAddress,
+    function getDelegationStakingAmount(
+        address delegatorAddress,
         address nodeAddress
     ) public view returns (uint) {
         bytes32 stakingInfoID = keccak256(
-            abi.encodePacked(userAddress, nodeAddress)
+            abi.encodePacked(delegatorAddress, nodeAddress)
         );
         uint amount = stakingInfos[stakingInfoID].stakeAmount;
         return amount;
@@ -235,42 +235,42 @@ contract UserStaking is Ownable {
 
         for (uint i = 0; i < length; i++) {
             bytes32 stakingInfoID = nodeIndex[nodeAddress].at(i);
-            addresses[i] = stakingInfos[stakingInfoID].userAddress;
+            addresses[i] = stakingInfos[stakingInfoID].delegatorAddress;
             amounts[i] = stakingInfos[stakingInfoID].stakeAmount;
         }
         return (addresses, amounts);
     }
 
-    function getUserStakingInfos(
-        address userAddress
+    function getDelegatorStakingInfos(
+        address delegatorAddress
     ) public view returns (address[] memory, uint[] memory) {
-        uint length = userIndex[userAddress].length();
+        uint length = userIndex[delegatorAddress].length();
 
         address[] memory addresses = new address[](length);
         uint[] memory amounts = new uint[](length);
 
         for (uint i = 0; i < length; i++) {
-            bytes32 stakingInfoID = userIndex[userAddress].at(i);
+            bytes32 stakingInfoID = userIndex[delegatorAddress].at(i);
             addresses[i] = stakingInfos[stakingInfoID].nodeAddress;
             amounts[i] = stakingInfos[stakingInfoID].stakeAmount;
         }
         return (addresses, amounts);
     }
 
-    function getNodeStakeAmount(
+    function getNodeTotalStakeAmount(
         address nodeAddress
     ) public view returns (uint) {
         return nodeStakeAmount[nodeAddress];
     }
 
-    function getUserStakeAmount(
-        address userAddress
+    function getDelegatorTotalStakeAmount(
+        address delegatorAddress
     ) public view returns (uint) {
-        return userStakeAmount[userAddress];
+        return delegatorStakeAmount[delegatorAddress];
     }
 
-    function getAllUserAddresses() public view returns (address[] memory) {
-        return userAddresses.values();
+    function getAllDelegatorAddresses() public view returns (address[] memory) {
+        return delegatorAddresses.values();
     }
 
     function getAllNodeAddresses() public view returns (address[] memory) {

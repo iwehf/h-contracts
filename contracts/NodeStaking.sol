@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Credits.sol";
 import "./BenefitAddress.sol";
-import "./UserStaking.sol";
+import "./DelegatedStaking.sol";
 
 
 contract NodeStaking is Ownable {
@@ -29,18 +29,18 @@ contract NodeStaking is Ownable {
 
     Credits private credits;
     BenefitAddress private ba;
-    UserStaking private us;
+    DelegatedStaking private ds;
 
     address private adminAddress;
 
     constructor(
         address creditsContract,
         address benefitAddressContract,
-        address userStakingContract
+        address delegatedStakingContract
     ) Ownable(msg.sender) {
         credits = Credits(creditsContract);
         ba = BenefitAddress(benefitAddressContract);
-        us = UserStaking(userStakingContract);
+        ds = DelegatedStaking(delegatedStakingContract);
     }
 
     // public api for owner
@@ -163,7 +163,7 @@ contract NodeStaking is Ownable {
             (bool success, ) = owner().call{value: stakedBalance}("");
             require(success, "Token transfer failed");
         }
-        us.slashNode(nodeAddress);
+        ds.slashNode(nodeAddress);
         // remove node
         allNodeAddresses.remove(nodeAddress);
         delete nodeStakingMap[nodeAddress];
